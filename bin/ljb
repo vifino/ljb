@@ -1,0 +1,93 @@
+#!/usr/bin/env lua
+
+function file_exists(name)
+	local f=io.open(name,"r")
+		if f~=nil then
+			io.close(f)
+			return true
+		else
+			return false 
+		end
+end
+
+if not (#arg >=2) then
+	print("Usage: "..arg[0].." file.lua output_binary [Extra_lua_modules_or_objects]")
+	os.exit(1)
+end
+
+if not file_exists(arg[1]) then
+	print(string.format("Error: Could not find file: %s", main))
+	os.exit(1)
+end
+
+if file_exists(arg[2]) then
+	print("Error: Output file exists, aborting..")
+	os.exit(1)
+end
+
+local file = os.tmpname() ..".c"
+
+local handle = io.open(file,"w")
+
+handle:write([[
+#include <stdio.h>
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+
+int main(int argc, char *argv[]) {
+  int i;
+  lua_State* L = luaL_newstate();
+  luaL_openlibs(L);
+  lua_newtable(L);
+  for (i = 0; i < argc; i++) {
+    lua_pushnumber(L, i);
+    lua_pushstring(L, argv[i]);
+    lua_settable(L, -3);
+  }
+  lua_setglobal(L, "arg");
+  return luaL_dostring(L, "require \"main\"");
+}
+]])
+handle:close()
+
+local args = "-lluajit-5.1 "
+local extra_objects = {}
+
+if os.getenv("luajit_lib") then
+	args = "-l"..os.getenv("luajit_lib") .. " "
+end
+if os.getenv("luajit_src") then
+	args = args .. "-I"..os.getenv("luajit_src")
+end
+if os.getenv("luajit_obj") then
+	args = args .. " " .. os.getenv("luajit_obj")
+end
+local function buildObj(infile, outfile, name)
+	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
+	name = name or filename:gsub("%.lua$","")
+	os.execute(string.format("%s -b -n "..name.." %s %s", (os.getenv("luajit_bin") or "luajit"), infile, outfile))
+end
+local function compile(fargs)
+	local ret =os.execute(string.format([[
+	%s -O3 -Wall -Wl,-E \
+		%s %s \
+		%s \
+		-o %s -lm -ldl -flto ]], (os.getenv("CC") or "gcc"), file ,(arg[1]..".o"), fargs.." ".. table.concat(extra_objects," "), arg[2]))
+	os.execute("rm -rf "..arg[1]..".o")
+end
+buildObj(arg[1], (arg[1]..".o"), "main")
+if #arg >= 3 then
+	for i=3, #arg, 1 do
+		print(arg[i], arg[i]:match("%.lua$"))
+		if arg[i]:match("%.lua$") then
+			buildObj(arg[i],arg[i]..".o")
+			table.insert(extra_objects,arg[i]..".o")
+		else
+			table.insert(extra_objects,arg[i])
+		end
+	end
+end
+local ret = compile(args)
+os.execute("rm -rf "..file)
+os.exit(ret)

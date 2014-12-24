@@ -89,5 +89,5 @@ if #arg >= 3 then
 	end
 end
 local ret = compile(args)
-os.execute("rm -rf "..file)
+os.execute("rm -rf "..file..".c")
 os.exit(ret)

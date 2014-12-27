@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 ]])
 handle:close()
 
-local args = "-lluajit-5.1 "
+local args = ""
 local extra_objects = {}
 
 if os.getenv("luajit_lib") then
@@ -63,6 +63,10 @@ end
 if os.getenv("luajit_obj") then
 	args = args .. " " .. os.getenv("luajit_obj")
 end
+if os.getenv("luajit_lib") then
+        args = "-l"..os.getenv("luajit_lib") .. " " .. args
+end
+if args == "" then args = "-lluajit-5.1" end
 local function buildObj(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
 	name = name or filename:gsub("%.lua$","")

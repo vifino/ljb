@@ -38,6 +38,9 @@ handle:write([[
 int main(int argc, char *argv[]) {
   int i;
   lua_State* L = luaL_newstate();
+  if (!L) {
+    printf("Unable to initialize LuaJIT!\n");
+  }
   luaL_openlibs(L);
   lua_newtable(L);
   for (i = 0; i < argc; i++) {
@@ -54,19 +57,18 @@ handle:close()
 local args = ""
 local extra_objects = {}
 
-if os.getenv("luajit_lib") then
-	args = "-l"..os.getenv("luajit_lib") .. " "
-end
 if os.getenv("luajit_src") then
 	args = args .. "-I"..os.getenv("luajit_src")
-end
-if os.getenv("luajit_obj") then
-	args = args .. " " .. os.getenv("luajit_obj")
 end
 if os.getenv("luajit_lib") then
         args = "-l"..os.getenv("luajit_lib") .. " " .. args
 end
-if args == "" then args = "-lluajit-5.1" end
+if os.getenv("luajit_obj") then
+        args = args .. " " .. os.getenv("luajit_obj")
+end
+if not (os.getenv("luajit_obj") or os.getenv("luajit_lib")) then 
+	args = "-lluajit-5.1 " .. args
+end
 local function buildObj(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
 	name = name or filename:gsub("%.lua$","")

@@ -25,11 +25,12 @@ if file_exists(arg[2]) then
 	os.exit(1)
 end
 
-local file = os.tmpname()
+--local file = os.tmpname()
 
-local handle = io.open(file,"w")
+--local handle = io.open(file,"w")
 
-handle:write([[
+--handle:write(
+local code = [[
 #include <stdio.h>
 #include "lua.h"
 #include "lualib.h"
@@ -57,8 +58,8 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
-]])
-handle:close()
+]]--)
+--handle:close()
 
 local args = ""
 local extra_objects = {}
@@ -81,11 +82,13 @@ local function buildObj(infile, outfile, name)
 	os.execute(string.format("%s -b -n "..name.." %s %s", (os.getenv("luajit_bin") or "luajit"), infile, outfile))
 end
 local function compile(fargs)
-	local ret =os.execute(string.format([[
+	local b = io.popen(string.format([[
 	%s -O3 -Wall -Wl,-E \
 		-x c %s -x none %s \
 		%s \
-		-o %s -lm -ldl -flto ]], (os.getenv("CC") or "gcc"), file ,(arg[1]..".o"), fargs.." ".. table.concat(extra_objects," "), arg[2]))
+		-o %s -lm -ldl -flto ]], (os.getenv("CC") or "gcc"), "-" ,(arg[1]..".o"), fargs.." ".. table.concat(extra_objects," "), arg[2]), "w")
+	b:write(code)
+	b:close()
 	os.execute("rm -rf "..arg[1]..".o")
 end
 buildObj(arg[1], (arg[1]..".o"), "main")
@@ -101,5 +104,5 @@ if #arg >= 3 then
 	end
 end
 local ret = compile(args)
-os.execute("rm "..file)
-os.exit(ret)
+--os.execute("rm "..file)
+--os.exit(ret)

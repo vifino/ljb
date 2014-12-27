@@ -25,7 +25,7 @@ if file_exists(arg[2]) then
 	os.exit(1)
 end
 
-local file = os.tmpname() ..".c"
+local file = os.tmpname()
 
 local handle = io.open(file,"w")
 
@@ -49,7 +49,13 @@ int main(int argc, char *argv[]) {
     lua_settable(L, -3);
   }
   lua_setglobal(L, "arg");
-  return luaL_dostring(L, "require \"main\"");
+  int ret = luaL_dostring(L, "require \"main\"");
+  if (ret != 0) {
+    printf(lua_tolstring(L, -1, 0));
+    printf("\n");
+    return ret;
+  }
+  return 0;
 }
 ]])
 handle:close()
@@ -77,7 +83,7 @@ end
 local function compile(fargs)
 	local ret =os.execute(string.format([[
 	%s -O3 -Wall -Wl,-E \
-		%s %s \
+		-x c %s -x none %s \
 		%s \
 		-o %s -lm -ldl -flto ]], (os.getenv("CC") or "gcc"), file ,(arg[1]..".o"), fargs.." ".. table.concat(extra_objects," "), arg[2]))
 	os.execute("rm -rf "..arg[1]..".o")
@@ -95,5 +101,5 @@ if #arg >= 3 then
 	end
 end
 local ret = compile(args)
-os.execute("rm -rf "..file..".c")
+os.execute("rm "..file)
 os.exit(ret)

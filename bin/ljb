@@ -1,29 +1,149 @@
 #!/usr/bin/env lua
+-- LuaJIT bundler/builder
+-- Made by vifino
 
+-- Helper functions.
 function file_exists(name)
 	local f=io.open(name,"r")
-		if f~=nil then
-			io.close(f)
-			return true
-		else
-			return false 
+	if f~=nil then
+		io.close(f)
+		return true
+	else
+		return false 
+	end
+end
+function ansiescape(num) 
+	return (string.char(27) .. '[%dm'):format(num)
+end
+function perror(...)
+	print(ansiescape(31).."[ERROR]".. ansiescape(0) .. " "..table.concat({...},"\t"))
+end
+function pwarn(...)
+	print(ansiescape(33).."[WARNG]".. ansiescape(0) .. " "..table.concat({...},"\t"))
+end
+function plog(...)
+	print(ansiescape(32).."[ LOG ]".. ansiescape(0) .. " "..table.concat({...},"\t"))
+end
+
+function werror(...)
+	io.write(ansiescape(31).."[ERROR]".. ansiescape(0) .. " "..table.concat({...},"\t"))
+end
+function wwarn(...)
+	io.write(ansiescape(33).."[WARNING]".. ansiescape(0) .. " "..table.concat({...},"\t"))
+end
+function winfo(...)
+	io.write(ansiescape(32).."[INFO]".. ansiescape(0) .. " "..table.concat({...},"\t"))
+end
+-- Done.
+
+-- Option parser
+
+function getopt( options )
+	local tab = {}
+	for k, v in ipairs(arg) do
+		if string.sub( v, 1, 2) == "--" then
+			table.remove(arg,k)
+			local x = string.find( v, "=", 1, true )
+			if x then tab[ string.sub( v, 3, x-1 ) ] = string.sub( v, x+1 )
+			else      tab[ string.sub( v, 3 ) ] = true
+			end
+		elseif string.sub( v, 1, 1 ) == "-" then
+			table.remove(arg,k)
+			local y = 2
+			local l = string.len(v)
+			local jopt
+			while ( y <= l ) do
+				jopt = string.sub( v, y, y )
+				tab[ jopt ] = true
+				y = y + 1
+			end
 		end
+	end
+	return tab
 end
+-- Done.
 
-if not (#arg >=2) then
-	print("Usage: "..arg[0].." file.lua output_binary [Extra_lua_modules_or_objects]")
-	os.exit(1)
+-- Option parsing functions.
+local optionlist = "h"
+local optionstore = {}
+local optioninfo = {}
+local afterhooks = {}
+
+function addOption(character,fun, info)
+	optionlist = optionlist .. character
+	optionstore[character] = fun
+	if info then
+		optioninfo[character] = info
+	end
 end
+function addPostProcessor(func)
+	table.insert(afterhooks, func)
+end
+-- Options here.
 
+addOption("s", function() -- Strip
+	addPostProcessor(function()
+		winfo("Stripping... ")
+		os.execute("strip --strip-all "..arg[2])
+		print("Done.")
+	end)
+end, "Strip output file using 'strip --strip-all'")
+
+addOption("c", function() -- UPX
+	addPostProcessor(function()
+		winfo("Compacting... ")
+		io.popen("upx -9 "..arg[2],"r"):close()
+		print("Done.")
+	end)
+end, "Compact output using 'upx -9'")
+
+-- Done
+options = getopt(optionlist)
+if ((not (#arg >=2)) or options["h"]) then
+	print("Usage: "..arg[0].." [-"..optionlist.."] file.lua output_binary [Extra_lua_modules_or_objects]")
+	print("\t-h: Show this help.")
+	for k,v in pairs(optioninfo) do
+		print("\t-"..k..": "..tostring(v))
+	end
+	if not options["h"] then
+		os.exit(1)
+end
+end
+for k,v in pairs(optionstore) do
+	if options[k] then
+		v()
+	end
+end
+-- Done
+
+-- Some error checking beforehand.
 if not file_exists(arg[1]) then
-	print(string.format("Error: Could not find file: %s", main))
+	perror(string.format("Could not find file: %s", arg[1]))
 	os.exit(1)
 end
 
 if file_exists(arg[2]) then
-	print("Error: Output file exists, aborting..")
+	perror("Output file exists, aborting..")
 	os.exit(1)
 end
+
+-- Old Option parsing actions.
+--[[
+if options["s"] then
+	-- Strip file
+	table.insert(afterhooks, function()
+		os.execute("strip --strip-all "..arg[2])
+	end)
+end
+
+if options["u"] then
+	-- UPX it!
+	table.insert(afterhooks, function()
+		os.execute("upx -9 "..arg[2])
+	end)
+end
+]]
+-- Done
 
 local extra_c = os.getenv("ljb_cadd") or ""
 local code = [[
@@ -72,6 +192,7 @@ end
 if not (os.getenv("luajit_obj") or os.getenv("luajit_lib")) then 
 	args = "-lluajit-5.1 " .. args
 end
+-- Actual compilation.
 local function buildObj(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
 	name = name or filename:gsub("%.lua$","")
@@ -99,3 +220,6 @@ if #arg >= 3 then
 	end
 end
 local ret = compile(args)
+for k,v in pairs(afterhooks) do
+	v()
+end

@@ -25,11 +25,7 @@ if file_exists(arg[2]) then
 	os.exit(1)
 end
 
---local file = os.tmpname()
-
---local handle = io.open(file,"w")
-
---handle:write(
+local extra_c = os.getenv("ljb_cadd") or ""
 local code = [[
 #include <stdio.h>
 #include "lua.h"
@@ -43,7 +39,8 @@ int main(int argc, char *argv[]) {
     printf("Unable to initialize LuaJIT!\n");
   }
   luaL_openlibs(L);
-  lua_newtable(L);
+]] .. extra_c .. [[ 
+	lua_newtable(L);
   for (i = 0; i < argc; i++) {
     lua_pushnumber(L, i);
     lua_pushstring(L, argv[i]);
@@ -58,8 +55,7 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
-]]--)
---handle:close()
+]]
 
 local args = ""
 local extra_objects = {}
@@ -94,7 +90,6 @@ end
 buildObj(arg[1], (arg[1]..".o"), "main")
 if #arg >= 3 then
 	for i=3, #arg, 1 do
-		print(arg[i], arg[i]:match("%.lua$"))
 		if arg[i]:match("%.lua$") then
 			buildObj(arg[i],arg[i]..".o")
 			table.insert(extra_objects,arg[i]..".o")
@@ -104,5 +99,3 @@ if #arg >= 3 then
 	end
 end
 local ret = compile(args)
---os.execute("rm "..file)
---os.exit(ret)

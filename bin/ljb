@@ -21,8 +21,8 @@ end
 function pwarn(...)
 	print(ansiescape(33).."[WARNG]".. ansiescape(0) .. " "..table.concat({...},"\t"))
 end
-function plog(...)
-	print(ansiescape(32).."[ LOG ]".. ansiescape(0) .. " "..table.concat({...},"\t"))
+function pinfo(...)
+	print(ansiescape(32).."[INFO]".. ansiescape(0) .. " "..table.concat({...},"\t"))
 end
 
 function werror(...)
@@ -96,6 +96,27 @@ addOption("c", function() -- UPX
 		print("Done.")
 	end)
 end, "Compact output using 'upx -9'")
+
+addOption("m", function() -- Mono color.
+	function perror(...)
+		print("[ERROR] "..table.concat({...},"\t"))
+	end
+	function pwarn(...)
+		print("[WARNG] "..table.concat({...},"\t"))
+	end
+	function pinfo(...)
+		print("[INFO] "..table.concat({...},"\t"))
+	end
+	function werror(...)
+		io.write("[ERROR] "..table.concat({...},"\t"))
+	end
+	function wwarn(...)
+		io.write("[WARNING] "..table.concat({...},"\t"))
+	end
+	function winfo(...)
+		io.write("[INFO] "..table.concat({...},"\t"))
+	end
+end, "Don't use colors.")
 
 -- Done
 options = getopt(optionlist)

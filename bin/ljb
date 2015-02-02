@@ -36,8 +36,7 @@ function winfo(...)
 end
 -- Done.
 
--- Option parser
-
+-- Option parser, mostly taken from the lua doc, just tweaked for my needs.
 function getopt( options )
 	local tab = {}
 	for k, v in ipairs(arg) do
@@ -63,26 +62,35 @@ function getopt( options )
 end
 -- Done.
 
+-- Some variables required later.
+local nocheckfile = false
+-- Done.
+
 -- Option parsing functions.
 local optionlist = "h"
 local optionstore = {}
+local optionsequence = {}
 local optioninfo = {}
-local afterhooks = {}
 
 function addOption(character,fun, info)
 	optionlist = optionlist .. character
+	if not optionstore[character] then
+		table.insert(optionsequence,character)
+	end
 	optionstore[character] = fun
 	if info then
 		optioninfo[character] = info
 	end
 end
-function addPostProcessor(func)
-	table.insert(afterhooks, func)
+-- Hooks.
+local posthooks = {}
+function addPostProcess(func)
+	table.insert(posthooks, func)
 end
 -- Options here.
 
 addOption("s", function() -- Strip
-	addPostProcessor(function()
+	addPostProcess(function()
 		winfo("Stripping... ")
 		os.execute("strip --strip-all "..arg[2])
 		print("Done.")
@@ -90,7 +98,7 @@ addOption("s", function() -- Strip
 end, "Strip output file using 'strip --strip-all'")
 
 addOption("c", function() -- UPX
-	addPostProcessor(function()
+	addPostProcess(function()
 		winfo("Compacting... ")
 		io.popen("upx -9 "..arg[2],"r"):close()
 		print("Done.")
@@ -118,21 +126,25 @@ addOption("m", function() -- Mono color.
 	end
 end, "Don't use colors.")
 
+addOption("n", function() -- No Check file
+	nocheckfile = true
+end, "Don't check the source file.")
+
 -- Done
 options = getopt(optionlist)
 if ((not (#arg >=2)) or options["h"]) then
 	print("Usage: "..arg[0].." [-"..optionlist.."] file.lua output_binary [Extra_lua_modules_or_objects]")
 	print("\t-h: Show this help.")
-	for k,v in pairs(optioninfo) do
-		print("\t-"..k..": "..tostring(v))
+	for _,k in pairs(optionsequence) do
+		print("\t-"..k..": "..tostring(optioninfo[k]))
 	end
 	if not options["h"] then
 		os.exit(1)
+	end
 end
-end
-for k,v in pairs(optionstore) do
+for _,k in pairs(optionsequence) do
 	if options[k] then
-		v()
+		optionstore[k]()
 	end
 end
 -- Done
@@ -217,7 +229,20 @@ end
 local function buildObj(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
 	name = name or filename:gsub("%.lua$","")
-	os.execute(string.format("%s -b -n "..name.." %s %s", (os.getenv("luajit_bin") or "luajit"), infile, outfile))
+	if not nocheckfile then
+		local file = assert(io.open(infile))
+		local content = file:read("*all")
+		file:close()
+		local func,err = loadstring(content)
+		if func then
+			os.execute(string.format("%s -b -n "..name.." %s %s", (os.getenv("luajit_bin") or "luajit"), infile, outfile))
+		else
+			perror(err)
+			os.exit(1)
+		end
+	else
+		os.execute(string.format("%s -b -n "..name.." %s %s", (os.getenv("luajit_bin") or "luajit"), infile, outfile))
+	end
 end
 local function compile(fargs)
 	local b = io.popen(string.format([[
@@ -241,6 +266,6 @@ if #arg >= 3 then
 	end
 end
 local ret = compile(args)
-for k,v in pairs(afterhooks) do
+for k,v in pairs(posthooks) do
 	v()
 end

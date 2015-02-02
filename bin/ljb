@@ -4,12 +4,14 @@
 
 -- Helper functions.
 function file_exists(name)
-	local f=io.open(name,"r")
-	if f~=nil then
-		io.close(f)
-		return true
-	else
-		return false 
+	if name then
+		local f=io.open(name,"r")
+		if f~=nil then
+			io.close(f)
+			return true
+		else
+			return false 
+		end
 	end
 end
 function ansiescape(num) 
@@ -138,7 +140,9 @@ if ((not (#arg >=2)) or options["h"]) then
 	for _,k in pairs(optionsequence) do
 		print("\t-"..k..": "..tostring(optioninfo[k]))
 	end
-	if not options["h"] then
+	if options["h"] then
+		os.exit(0)
+	else
 		os.exit(1)
 	end
 end
@@ -186,27 +190,27 @@ local code = [[
 #include "lauxlib.h"
 
 int main(int argc, char *argv[]) {
-  int i;
-  lua_State* L = luaL_newstate();
-  if (!L) {
-    printf("Unable to initialize LuaJIT!\n");
-  }
-  luaL_openlibs(L);
+	int i;
+	lua_State* L = luaL_newstate();
+	if (!L) {
+		printf("Unable to initialize LuaJIT!\n");
+	}
+	luaL_openlibs(L);
 ]] .. extra_c .. [[ 
 	lua_newtable(L);
-  for (i = 0; i < argc; i++) {
-    lua_pushnumber(L, i);
-    lua_pushstring(L, argv[i]);
-    lua_settable(L, -3);
-  }
-  lua_setglobal(L, "arg");
-  int ret = luaL_dostring(L, "require \"main\"");
-  if (ret != 0) {
-    printf(lua_tolstring(L, -1, 0));
-    printf("\n");
-    return ret;
-  }
-  return 0;
+	for (i = 0; i < argc; i++) {
+		lua_pushnumber(L, i);
+		lua_pushstring(L, argv[i]);
+		lua_settable(L, -3);
+	}
+	lua_setglobal(L, "arg");
+	int ret = luaL_dostring(L, "require \"main\"");
+	if (ret != 0) {
+		printf(lua_tolstring(L, -1, 0));
+		printf("\n");
+		return ret;
+	}
+	return 0;
 }
 ]]
 
@@ -217,10 +221,10 @@ if os.getenv("luajit_src") then
 	args = args .. "-I"..os.getenv("luajit_src")
 end
 if os.getenv("luajit_lib") then
-        args = "-l"..os.getenv("luajit_lib") .. " " .. args
+	args = "-l"..os.getenv("luajit_lib") .. " " .. args
 end
 if os.getenv("luajit_obj") then
-        args = args .. " " .. os.getenv("luajit_obj")
+	args = args .. " " .. os.getenv("luajit_obj")
 end
 if not (os.getenv("luajit_obj") or os.getenv("luajit_lib")) then 
 	args = "-lluajit-5.1 " .. args
@@ -229,7 +233,7 @@ end
 local function buildObj(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
 	name = name or filename:gsub("%.lua$","")
-	if not nocheckfile then
+	if not nocheckfile and infile then
 		local file = assert(io.open(infile))
 		local content = file:read("*all")
 		file:close()

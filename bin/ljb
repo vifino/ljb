@@ -89,21 +89,30 @@ local posthooks = {}
 function addPostProcess(func)
 	table.insert(posthooks, func)
 end
--- Options here.
 
+-- Inbuild Options here.
 addOption("s", function() -- Strip
 	addPostProcess(function()
 		winfo("Stripping... ")
-		os.execute("strip --strip-all "..arg[2])
-		print("Done.")
+		local status = os.execute("strip --strip-all "..arg[2])
+		if status/256 == 0 then
+			print("Done.")
+		else
+			print("Error!")
+		end
 	end)
 end, "Strip output file using 'strip --strip-all'")
 
 addOption("c", function() -- UPX
 	addPostProcess(function()
 		winfo("Compacting... ")
-		io.popen("upx -9 "..arg[2],"r"):close()
-		print("Done.")
+		--io.popen("upx -9 "..arg[2],"r"):close()
+		local status = os.execute("upx -9 "..arg[2].." > /dev/null")
+		if status/256 == 0 then
+			print("Done.")
+		else
+			print("Error!")
+		end
 	end)
 end, "Compact output using 'upx -9'")
 
@@ -131,11 +140,14 @@ end, "Don't use colors.")
 addOption("n", function() -- No Check file
 	nocheckfile = true
 end, "Don't check the source file.")
+-- Done
 
+-- Modules from other files.
+require("modules.helloworld")
 -- Done
 options = getopt(optionlist)
 if ((not (#arg >=2)) or options["h"]) then
-	print("Usage: "..arg[0].." [-"..optionlist.."] file.lua output_binary [Extra_lua_modules_or_objects]")
+	print("Usage: "..arg[0].." [-"..optionlist.."] file.lua output_binary [Extra_lua_files_or_objects]")
 	print("\t-h: Show this help.")
 	for _,k in pairs(optionsequence) do
 		print("\t-"..k..": "..tostring(optioninfo[k]))
@@ -232,7 +244,7 @@ end
 -- Actual compilation.
 local function buildObj(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
-	name = name or filename:gsub("%.lua$","")
+	name = name or (dir:gsub("^%./",""):gsub("^/",""):gsub("/",".") .. filename:gsub("%.lua$",""))
 	if not nocheckfile and infile then
 		local file = assert(io.open(infile))
 		local content = file:read("*all")

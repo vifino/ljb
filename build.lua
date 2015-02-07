@@ -1,7 +1,8 @@
+#!/usr/bin/env lua
 -- Build script. Gone right :D
 function run(cmd)
 	print("$ "..cmd)
 	os.execute(cmd)
 end
-run("luajit bin/ljb -smc bin/ljb ljb modules/helloworld.lua")
+run("luajit bin/ljb.lua -smc bin/ljb.lua ljb modules/helloworld.lua modules/ljx.lua")
 print("Done.")

@@ -10,11 +10,11 @@ function file_exists(name)
 			io.close(f)
 			return true
 		else
-			return false 
+			return false
 		end
 	end
 end
-function ansiescape(num) 
+function ansiescape(num)
 	return (string.char(27) .. '[%dm'):format(num)
 end
 function perror(...)
@@ -66,6 +66,40 @@ end
 
 -- Some variables required later.
 local nocheckfile = false
+args = ""
+extra_objects = {}
+extra_c = os.getenv("ljb_cadd") or ""
+code = [[
+#include <stdio.h>
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+
+int main(int argc, char *argv[]) {
+	int i;
+	lua_State* L = luaL_newstate();
+	if (!L) {
+		printf("Unable to initialize LuaJIT!\n");
+	}
+	luaL_openlibs(L);
+]] .. extra_c .. [[
+	lua_newtable(L);
+	for (i = 0; i < argc; i++) {
+		lua_pushnumber(L, i);
+		lua_pushstring(L, argv[i]);
+		lua_settable(L, -3);
+	}
+	lua_setglobal(L, "arg");
+	int ret = luaL_dostring(L, "require \"main\"");
+	if (ret != 0) {
+		printf(lua_tolstring(L, -1, 0));
+		printf("\n");
+		return ret;
+	}
+	return 0;
+}
+]]
+ljbin = os.getenv("luajit_bin") or "luajit"
 -- Done.
 
 -- Option parsing functions.
@@ -144,8 +178,22 @@ end, "Don't check the source file.")
 
 -- Modules from other files.
 require("modules.helloworld")
+require("modules.ljx")
 -- Done
 options = getopt(optionlist)
+-- Some error checking beforehand.
+if arg[1] ~= nil then
+	if not file_exists(arg[1]) then
+		perror(string.format("Could not find file: %s", arg[1]))
+		os.exit(1)
+	end
+
+	if file_exists(arg[2]) then
+		perror("Output file exists, aborting..")
+		os.exit(1)
+	end
+end
+
 if ((not (#arg >=2)) or options["h"]) then
 	print("Usage: "..arg[0].." [-"..optionlist.."] file.lua output_binary [Extra_lua_files_or_objects]")
 	print("\t-h: Show this help.")
@@ -165,17 +213,6 @@ for _,k in pairs(optionsequence) do
 end
 -- Done
 
--- Some error checking beforehand.
-if not file_exists(arg[1]) then
-	perror(string.format("Could not find file: %s", arg[1]))
-	os.exit(1)
-end
-
-if file_exists(arg[2]) then
-	perror("Output file exists, aborting..")
-	os.exit(1)
-end
-
 -- Old Option parsing actions.
 --[[
 if options["s"] then
@@ -194,53 +231,21 @@ end
 ]]
 -- Done
 
-local extra_c = os.getenv("ljb_cadd") or ""
-local code = [[
-#include <stdio.h>
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+if args == "" then
+	if os.getenv("luajit_src") then
+		args = args .. "-I"..os.getenv("luajit_src")
+	end
+	if os.getenv("luajit_lib") then
+		args = "-l"..os.getenv("luajit_lib") .. " " .. args
+	end
+	if os.getenv("luajit_obj") then
+		args = args .. " " .. os.getenv("luajit_obj")
+	end
+	if not (os.getenv("luajit_obj") or os.getenv("luajit_lib")) then
+		args = "-lluajit-5.1 " .. args
+	end
+end
 
-int main(int argc, char *argv[]) {
-	int i;
-	lua_State* L = luaL_newstate();
-	if (!L) {
-		printf("Unable to initialize LuaJIT!\n");
-	}
-	luaL_openlibs(L);
-]] .. extra_c .. [[ 
-	lua_newtable(L);
-	for (i = 0; i < argc; i++) {
-		lua_pushnumber(L, i);
-		lua_pushstring(L, argv[i]);
-		lua_settable(L, -3);
-	}
-	lua_setglobal(L, "arg");
-	int ret = luaL_dostring(L, "require \"main\"");
-	if (ret != 0) {
-		printf(lua_tolstring(L, -1, 0));
-		printf("\n");
-		return ret;
-	}
-	return 0;
-}
-]]
-
-local args = ""
-local extra_objects = {}
-
-if os.getenv("luajit_src") then
-	args = args .. "-I"..os.getenv("luajit_src")
-end
-if os.getenv("luajit_lib") then
-	args = "-l"..os.getenv("luajit_lib") .. " " .. args
-end
-if os.getenv("luajit_obj") then
-	args = args .. " " .. os.getenv("luajit_obj")
-end
-if not (os.getenv("luajit_obj") or os.getenv("luajit_lib")) then 
-	args = "-lluajit-5.1 " .. args
-end
 -- Actual compilation.
 local function buildObj(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
@@ -251,13 +256,13 @@ local function buildObj(infile, outfile, name)
 		file:close()
 		local func,err = loadstring(content)
 		if func then
-			os.execute(string.format("%s -b -n "..name.." %s %s", (os.getenv("luajit_bin") or "luajit"), infile, outfile))
+			os.execute(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
 		else
 			perror(err)
 			os.exit(1)
 		end
 	else
-		os.execute(string.format("%s -b -n "..name.." %s %s", (os.getenv("luajit_bin") or "luajit"), infile, outfile))
+		os.execute(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
 	end
 end
 local function compile(fargs)

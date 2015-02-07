@@ -18,7 +18,7 @@ function ansiescape(num)
 	return (string.char(27) .. '[%dm'):format(num)
 end
 function perror(...)
-	print(ansiescape(31).."[ERROR]".. ansiescape(0) .. " "..table.concat({...},"\t"))
+	io.write(ansiescape(31).."[ERROR]".. ansiescape(0) .. " "..table.concat({...},"\t").."\n")
 end
 function pwarn(...)
 	print(ansiescape(33).."[WARNG]".. ansiescape(0) .. " "..table.concat({...},"\t"))
@@ -125,6 +125,37 @@ function addPostProcess(func)
 end
 
 -- Inbuild Options here.
+addOption("q", function() -- No output, except Errors..
+	function perror(...) end
+	function pwarn(...) end
+	function pinfo(...) end
+	function werror(...) end
+	function wwarn(...) end
+	function winfo(...) end
+	function print(...) end
+end, "Quiet.")
+
+addOption("m", function() -- Mono color.
+	function perror(...)
+		io.write("[ERROR] "..table.concat({...},"\t").."\n")
+	end
+	function pwarn(...)
+		print("[WARNG] "..table.concat({...},"\t"))
+	end
+	function pinfo(...)
+		print("[INFO] "..table.concat({...},"\t"))
+	end
+	function werror(...)
+		io.write("[ERROR] "..table.concat({...},"\t"))
+	end
+	function wwarn(...)
+		io.write("[WARNING] "..table.concat({...},"\t"))
+	end
+	function winfo(...)
+		io.write("[INFO] "..table.concat({...},"\t"))
+	end
+end, "Don't use colors.")
+
 addOption("s", function() -- Strip
 	addPostProcess(function()
 		winfo("Stripping... ")
@@ -150,35 +181,14 @@ addOption("c", function() -- UPX
 	end)
 end, "Compact output using 'upx -9'")
 
-addOption("m", function() -- Mono color.
-	function perror(...)
-		print("[ERROR] "..table.concat({...},"\t"))
-	end
-	function pwarn(...)
-		print("[WARNG] "..table.concat({...},"\t"))
-	end
-	function pinfo(...)
-		print("[INFO] "..table.concat({...},"\t"))
-	end
-	function werror(...)
-		io.write("[ERROR] "..table.concat({...},"\t"))
-	end
-	function wwarn(...)
-		io.write("[WARNING] "..table.concat({...},"\t"))
-	end
-	function winfo(...)
-		io.write("[INFO] "..table.concat({...},"\t"))
-	end
-end, "Don't use colors.")
-
 addOption("n", function() -- No Check file
 	nocheckfile = true
-end, "Don't check the source file.")
+end, "Don't check the source file for syntax errors.")
 -- Done
 
 -- Modules from other files.
-require("modules.helloworld")
 require("modules.ljx")
+require("modules.helloworld")
 -- Done
 options = getopt(optionlist)
 -- Some error checking beforehand.
@@ -275,6 +285,7 @@ local function compile(fargs)
 	b:close()
 	os.execute("rm -rf "..arg[1]..".o")
 end
+winfo("Compiling: Phase One... ")
 buildObj(arg[1], (arg[1]..".o"), "main")
 if #arg >= 3 then
 	for i=3, #arg, 1 do
@@ -286,7 +297,10 @@ if #arg >= 3 then
 		end
 	end
 end
+print("Done.")
+winfo("Compiling: Phase Two... ")
 local ret = compile(args)
+print("Done.")
 for k,v in pairs(posthooks) do
 	v()
 end

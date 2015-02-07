@@ -1,4 +1,4 @@
-#!/usr/bin/env lua
+#!/usr/bin/env luajit
 -- LuaJIT bundler/builder
 -- Made by vifino
 
@@ -19,6 +19,10 @@ function ansiescape(num)
 end
 function perror(...)
 	io.write(ansiescape(31).."[ERROR]".. ansiescape(0) .. " "..table.concat({...},"\t").."\n")
+end
+function fatal(...)
+	io.write(ansiescape(31).."[FATAL]".. ansiescape(0) .. " "..table.concat({...},"\t").."\n")
+	os.exit(1)
 end
 function pwarn(...)
 	print(ansiescape(33).."[WARNG]".. ansiescape(0) .. " "..table.concat({...},"\t"))
@@ -69,12 +73,14 @@ local nocheckfile = false
 args = ""
 extra_objects = {}
 extra_c = os.getenv("ljb_cadd") or ""
+extra_inc = os.getenv("ljb_cpre") or ""
+optimisationlevel = "3"
 code = [[
 #include <stdio.h>
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-
+]] .. extra_inc ..[[
 int main(int argc, char *argv[]) {
 	int i;
 	lua_State* L = luaL_newstate();
@@ -126,18 +132,31 @@ end
 
 -- Inbuild Options here.
 addOption("q", function() -- No output, except Errors..
+	function pwarn(...) end
+	function pinfo(...) end
+	function wwarn(...) end
+	function winfo(...) end
+	function print(...) end
+end, "Quiet for the most part, excludes Errors.")
+
+addOption("Q", function() -- No output at all.
 	function perror(...) end
+	function fatal() end
 	function pwarn(...) end
 	function pinfo(...) end
 	function werror(...) end
 	function wwarn(...) end
 	function winfo(...) end
 	function print(...) end
-end, "Quiet.")
+end)
 
 addOption("m", function() -- Mono color.
 	function perror(...)
 		io.write("[ERROR] "..table.concat({...},"\t").."\n")
+	end
+	function fatal(...)
+		io.write("[FATAL] "..table.concat({...},"\t").."\n")
+		os.exit(1)
 	end
 	function pwarn(...)
 		print("[WARNG] "..table.concat({...},"\t"))
@@ -158,6 +177,7 @@ end, "Don't use colors.")
 
 addOption("s", function() -- Strip
 	addPostProcess(function()
+		optimisationlevel = "s"
 		winfo("Stripping... ")
 		local status = os.execute("strip --strip-all "..arg[2])
 		if status/256 == 0 then
@@ -166,7 +186,7 @@ addOption("s", function() -- Strip
 			print("Error!")
 		end
 	end)
-end, "Strip output file using 'strip --strip-all'")
+end, "Use -Os and strip output file using 'strip --strip-all'")
 
 addOption("c", function() -- UPX
 	addPostProcess(function()
@@ -191,34 +211,32 @@ require("modules.ljx")
 require("modules.helloworld")
 -- Done
 options = getopt(optionlist)
--- Some error checking beforehand.
+for _,k in pairs(optionsequence) do
+	if options[k] then
+		optionstore[k]()
+	end
+end
 if arg[1] ~= nil then
 	if not file_exists(arg[1]) then
-		perror(string.format("Could not find file: %s", arg[1]))
-		os.exit(1)
+		fatal(string.format("Could not find file: %s", arg[1]))
 	end
-
 	if file_exists(arg[2]) then
-		perror("Output file exists, aborting..")
-		os.exit(1)
+		fatal("Output file exists, aborting..")
 	end
 end
 
 if ((not (#arg >=2)) or options["h"]) then
-	print("Usage: "..arg[0].." [-"..optionlist.."] file.lua output_binary [Extra_lua_files_or_objects]")
+	print("Usage: "..arg[0].." [-"..optionlist.."] file.lua output_binary [Extra_lua_files_or_Objects]")
 	print("\t-h: Show this help.")
 	for _,k in pairs(optionsequence) do
-		print("\t-"..k..": "..tostring(optioninfo[k]))
+		if optioninfo[k] then
+			print("\t-"..k..": "..tostring(optioninfo[k]))
+		end
 	end
 	if options["h"] then
 		os.exit(0)
 	else
 		os.exit(1)
-	end
-end
-for _,k in pairs(optionsequence) do
-	if options[k] then
-		optionstore[k]()
 	end
 end
 -- Done
@@ -268,8 +286,7 @@ local function buildObj(infile, outfile, name)
 		if func then
 			os.execute(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
 		else
-			perror(err)
-			os.exit(1)
+			fatal(err)
 		end
 	else
 		os.execute(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
@@ -277,10 +294,10 @@ local function buildObj(infile, outfile, name)
 end
 local function compile(fargs)
 	local b = io.popen(string.format([[
-	%s -O3 -Wall -Wl,-E \
+	%s -O%s -Wall -Wl,-E \
 		-x c %s -x none %s \
 		%s \
-		-o %s -lm -ldl -flto ]], (os.getenv("CC") or "gcc"), "-" ,(arg[1]..".o"), fargs.." ".. table.concat(extra_objects," "), arg[2]), "w")
+		-o %s -lm -ldl -flto ]], (os.getenv("CC") or "gcc"), optimisationlevel, "-" ,(arg[1]..".o"), fargs.." ".. table.concat(extra_objects," "), arg[2]), "w")
 	b:write(code)
 	b:close()
 	os.execute("rm -rf "..arg[1]..".o")

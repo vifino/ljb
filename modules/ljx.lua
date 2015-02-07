@@ -1,12 +1,11 @@
 -- Compile file with LJX runtime, not luajit.
 addOption("x",function()
-	extra_c = os.getenv("ljb_cadd") or ""
 	code = [[
 #include <stdio.h>
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-
+]] .. extra_inc ..[[
 int main(int argc, char *argv[]) {
 	int i;
 	lua_State* L = luaL_newstate();

@@ -1,5 +1,8 @@
 #!/bin/bash
-# A bloody long command line.
+# A bloody command line.
 # I should automate this..
-ljb socket.lua sockettest /usr/lib/lua/5.2/socket/core.so /usr/lib/lua/5.2/socket/serial.so /usr/lib/lua/5.2/socket/unix.so /usr/share/lua/5.2/socket.lua /usr/share/lua/5.2/socket/ftp.lua /usr/share/lua/5.2/socket/headers.lua /usr/share/lua/5.2/socket/http.lua /usr/share/lua/5.2/socket/smtp.lua /usr/share/lua/5.2/socket/tp.lua /usr/share/lua/5.2/socket/url.lua
 
+env CC="gcc -I/home/vifino/code/luasocket/src" \
+ljb_cadd="luapreload_fullluasocket(L);" \
+ljb_cpre="#include \"luasocketscripts.h\"\n#include \"fullluasocket.h\"" \
+ljb socket.lua sockettest luasocketscripts.c fullluasocket.c

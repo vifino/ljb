@@ -32,7 +32,7 @@ function compile_llvmlua(fargs)
 	local b = os.execute(cmd)
 	os.execute("rm -rf "..arg[1]..".bc")
 end
-addOption("v",function()
+addOption("l",function()
 	libtool = (os.getenv("libtool_bin") or "libtool") .. " --tag=CC --silent"
 	llvm_luac = os.getenv("llvm-luac") or "llvm-luac"
 	compile = compile_llvmlua

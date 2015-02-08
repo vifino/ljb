@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="13a6f01e-64c8-4d12-ac9d-3834aac7a582" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/tests/hello_world" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/bin/ljb.lua" afterPath="$PROJECT_DIR$/bin/ljb.lua" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/modules/llvmlua.lua" afterPath="$PROJECT_DIR$/modules/llvmlua.lua" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/modules/luajit.lua" afterPath="$PROJECT_DIR$/modules/luajit.lua" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-    </list>
+    <list default="true" id="13a6f01e-64c8-4d12-ac9d-3834aac7a582" name="Default" comment="" />
     <ignored path="ljb.iws" />
     <ignored path=".idea/workspace.xml" />
     <ignored path="$PROJECT_DIR$/out/" />
@@ -797,12 +791,12 @@
       <updated>1423266163914</updated>
       <workItem from="1423266168883" duration="12017000" />
       <workItem from="1423359913860" duration="2059000" />
-      <workItem from="1423401489087" duration="3818000" />
+      <workItem from="1423401489087" duration="3872000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="17894000" />
+    <option name="totallyTimeSpent" value="17948000" />
   </component>
   <component name="TodoView" selected-index="0">
     <todo-panel id="selected-file">

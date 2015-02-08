@@ -70,7 +70,7 @@ end
 
 -- Some variables required later.
 local nocheckfile = false
-args = ""
+ccargs = ""
 extra_objects = {}
 extra_c = os.getenv("ljb_cadd") or ""
 extra_inc = os.getenv("ljb_cpre") or ""
@@ -207,7 +207,9 @@ end, "Don't check the source file for syntax errors.")
 -- Done
 
 -- Modules from other files.
+require("modules.luajit")
 require("modules.ljx")
+require("modules.llvmlua")
 require("modules.helloworld")
 -- Done
 options = getopt(optionlist)
@@ -259,49 +261,24 @@ end
 ]]
 -- Done
 
-if args == "" then
+if ccargs == "" then
 	if os.getenv("luajit_src") then
-		args = args .. "-I"..os.getenv("luajit_src")
+		ccargs = ccargs .. "-I"..os.getenv("luajit_src")
 	end
 	if os.getenv("luajit_lib") then
-		args = "-l"..os.getenv("luajit_lib") .. " " .. args
+		ccargs = "-l"..os.getenv("luajit_lib") .. " " .. ccargs
 	end
 	if os.getenv("luajit_obj") then
-		args = args .. " " .. os.getenv("luajit_obj")
+		ccargs = ccargs .. " " .. os.getenv("luajit_obj")
 	end
 	if not (os.getenv("luajit_obj") or os.getenv("luajit_lib")) then
-		args = "-lluajit-5.1 " .. args
+		ccargs = "-lluajit-5.1 " .. ccargs
 	end
 end
 
 -- Actual compilation.
-local function buildObj(infile, outfile, name)
-	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
-	name = name or (dir:gsub("^%./",""):gsub("^/",""):gsub("/",".") .. filename:gsub("%.lua$",""))
-	if not nocheckfile and infile then
-		local file = assert(io.open(infile))
-		local content = file:read("*all")
-		file:close()
-		local func,err = loadstring(content)
-		if func then
-			os.execute(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
-		else
-			fatal(err)
-		end
-	else
-		os.execute(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
-	end
-end
-local function compile(fargs)
-	local b = io.popen(string.format([[
-	%s -O%s -Wall -Wl,-E \
-		-x c %s -x none %s \
-		%s \
-		-o %s -lm -ldl -flto ]], (os.getenv("CC") or "gcc"), optimisationlevel, "-" ,(arg[1]..".o"), fargs.." ".. table.concat(extra_objects," "), arg[2]), "w")
-	b:write(code)
-	b:close()
-	os.execute("rm -rf "..arg[1]..".o")
-end
+buildObj = buildObj or buildObj_luajit
+compile = compile or compile_luajit
 winfo("Compiling: Phase One... ")
 buildObj(arg[1], (arg[1]..".o"), "main")
 if #arg >= 3 then
@@ -316,7 +293,7 @@ if #arg >= 3 then
 end
 print("Done.")
 winfo("Compiling: Phase Two... ")
-local ret = compile(args)
+local ret = compile(ccargs)
 print("Done.")
 for k,v in pairs(posthooks) do
 	v()

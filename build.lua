@@ -4,5 +4,5 @@ function run(cmd)
 	print("$ "..cmd)
 	os.execute(cmd)
 end
-run("luajit bin/ljb.lua -smc bin/ljb.lua ljb modules/helloworld.lua modules/ljx.lua")
+run("luajit bin/ljb.lua -smc bin/ljb.lua ljb modules/*.lua")
 print("Done.")

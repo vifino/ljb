@@ -1,5 +1,6 @@
 -- Compile file with LuaJIT. [Default]
 function buildObj_luajit(infile, outfile, name)
+	outfile = outfile..".o"
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
 	name = name or (dir:gsub("^%./",""):gsub("^/",""):gsub("/",".") .. filename:gsub("%.lua$",""))
 	if not nocheckfile and infile then
@@ -8,13 +9,14 @@ function buildObj_luajit(infile, outfile, name)
 		file:close()
 		local func,err = loadstring(content)
 		if func then
-			os.execute(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
+			run(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
 		else
 			fatal(err)
 		end
 	else
-		os.execute(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
+		run(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
 	end
+	return outfile
 end
 function compile_luajit(fargs)
 	local b = io.popen(string.format([[

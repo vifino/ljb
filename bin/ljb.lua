@@ -14,6 +14,10 @@ function file_exists(name)
 		end
 	end
 end
+function run(cmd)
+	--print("$ "..cmd)
+	return os.execute(cmd)
+end
 function ansiescape(num)
 	return (string.char(27) .. '[%dm'):format(num)
 end
@@ -75,6 +79,8 @@ extra_objects = {}
 extra_c = os.getenv("ljb_cadd") or ""
 extra_inc = os.getenv("ljb_cpre") or ""
 optimisationlevel = "3"
+compile = nil
+buildObj = nil
 code = [[
 #include <stdio.h>
 #include "lua.h"
@@ -280,12 +286,11 @@ end
 buildObj = buildObj or buildObj_luajit
 compile = compile or compile_luajit
 winfo("Compiling: Phase One... ")
-buildObj(arg[1], (arg[1]..".o"), "main")
+buildObj(arg[1], arg[1], "main")
 if #arg >= 3 then
 	for i=3, #arg, 1 do
 		if arg[i]:match("%.lua$") then
-			buildObj(arg[i],arg[i]..".o")
-			table.insert(extra_objects,arg[i]..".o")
+			table.insert(extra_objects, buildObj(arg[i],arg[i]))
 		else
 			table.insert(extra_objects,arg[i])
 		end
@@ -294,7 +299,15 @@ end
 print("Done.")
 winfo("Compiling: Phase Two... ")
 local ret = compile(ccargs)
-print("Done.")
+if type(ret) == "number" then
+	if ret == 0 then
+		print("Done.")
+	else
+		print("Error!")
+	end
+else
+	print("Done.")
+end
 for k,v in pairs(posthooks) do
 	v()
 end

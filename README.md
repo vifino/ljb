@@ -17,7 +17,8 @@ Usage: ./ljb [-hqQmscnjxlt] file.lua output_binary [Extra_lua_files_or_Objects]
 ```
 
 # Building
-`lua build.lua`
+`$ lua build.lua`
+
 Dependencies:
 - gcc
 - LuaJIT + Development headers.

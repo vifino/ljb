@@ -1,7 +1,7 @@
 # ljb [![Build Status](http://tty.sh:8090/buildStatus/icon?job=LJB&build=25)](http://tty.sh:8090/job/LJB/25/)
 LJB: LuaJIT bundler/builder
 
-# Usage
+# Usage:
 ```
 Usage: ./ljb [-hqQmscnjxlt] file.lua output_binary [Extra_lua_files_or_Objects]
 	-h: Show this help.
@@ -16,7 +16,7 @@ Usage: ./ljb [-hqQmscnjxlt] file.lua output_binary [Extra_lua_files_or_Objects]
 	-t: Test 1 2 3! ^_^
 ```
 
-# Building
+# Building:
 `$ lua build.lua`
 
 Dependencies:
@@ -25,5 +25,5 @@ Dependencies:
 - (Optional) LJX + development headers.
 - (Optional) LLVM-Lua and clang.
 
-# Running.
+# Running:
 Running a compiled script requires no install of gcc, clang, LuaJIT, LJX or LLVM-Lua, if the script does not need it.

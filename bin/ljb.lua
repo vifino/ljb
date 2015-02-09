@@ -18,6 +18,13 @@ function run(cmd)
 	--print("$ "..cmd)
 	return os.execute(cmd)
 end
+function exec(cmd)
+	--print("$ "..cmd)
+	local fd = io.popen(cmd)
+	local content = fd:read("*all"):match("^%s*(.-)%s*$")
+	fd:close()
+	return content
+end
 function ansiescape(num)
 	return (string.char(27) .. '[%dm'):format(num)
 end
@@ -225,9 +232,9 @@ end, "Don't check the source file for syntax errors.")
 
 -- Modules from other files.
 require("modules.luajit")
-require("modules.macros")
 require("modules.ljx")
 require("modules.llvmlua")
+require("modules.macros")
 require("modules.helloworld")
 -- Done
 options = getopt(optionlist)
@@ -297,7 +304,9 @@ end
 -- Actual compilation.
 buildObj = buildObj or buildObj_luajit
 compile = compile or compile_luajit
-winfo("Compiling: Phase One... ")
+if #preprocessors ~= 0 then
+	pinfo("Preprocessing... ")
+end
 -- PreProcessing :o
 local f, err = io.open(arg[1],"r")
 if err then
@@ -316,14 +325,15 @@ for i=3, #arg, 1 do
 	end
 end
 for _,v in pairs(preprocessors) do
-	luacode[arg[1]] = v(luacode[arg[1]], infile)
+	luacode[arg[1]] = v(luacode[arg[1]], arg[1])
 end
 for i=3, #arg, 1 do
 	for _,v in pairs(preprocessors) do
-		luacode[arg[i]] = v(luacode[arg[i]], infile)
+		luacode[arg[i]] = v(luacode[arg[i]], arg[i])
 	end
 end
 -- Done.
+winfo("Compiling: Phase one.. ")
 buildObj(arg[1], arg[1], "main")
 if #arg >= 3 then
 	for i=3, #arg, 1 do

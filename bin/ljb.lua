@@ -73,7 +73,7 @@ end
 -- Done.
 
 -- Some variables required later.
-local nocheckfile = false
+nocheckfile = false
 ccargs = ""
 extra_objects = {}
 extra_c = os.getenv("ljb_cadd") or ""
@@ -81,7 +81,8 @@ extra_inc = os.getenv("ljb_cpre") or ""
 optimisationlevel = "3"
 compile = nil
 buildObj = nil
-code = [[
+luacode = {}
+ccode = [[
 #include <stdio.h>
 #include "lua.h"
 #include "lualib.h"
@@ -130,6 +131,16 @@ function addOption(character,fun, info)
 		optioninfo[character] = info
 	end
 end
+-- PreProcessors.
+local preprocessors = {}
+function addPreProcessor(func)
+	for i = 1,#preprocessors do
+		if preprocessors[i] == func then
+			return true
+		end
+	end
+	table.insert(preprocessors, func)
+end
 -- Hooks.
 local posthooks = {}
 function addPostProcess(func)
@@ -156,7 +167,7 @@ addOption("Q", function() -- No output at all.
 	function print(...) end
 end)
 
-addOption("m", function() -- Mono color.
+addOption("N", function() -- No color.
 	function perror(...)
 		io.write("[ERROR] "..table.concat({...},"\t").."\n")
 	end
@@ -214,6 +225,7 @@ end, "Don't check the source file for syntax errors.")
 
 -- Modules from other files.
 require("modules.luajit")
+require("modules.macros")
 require("modules.ljx")
 require("modules.llvmlua")
 require("modules.helloworld")
@@ -286,6 +298,32 @@ end
 buildObj = buildObj or buildObj_luajit
 compile = compile or compile_luajit
 winfo("Compiling: Phase One... ")
+-- PreProcessing :o
+local f, err = io.open(arg[1],"r")
+if err then
+	fatal(err)
+end
+luacode[arg[1]] = f:read("*all")
+f:close()
+for i=3, #arg, 1 do
+	if arg[i]:match("%.lua$") then
+		local f, err = io.open(arg[i],"r")
+		if err then
+			fatal(err)
+		end
+		luacode[arg[i]] = f:read("*all")
+		f:close()
+	end
+end
+for _,v in pairs(preprocessors) do
+	luacode[arg[1]] = v(luacode[arg[1]], infile)
+end
+for i=3, #arg, 1 do
+	for _,v in pairs(preprocessors) do
+		luacode[arg[i]] = v(luacode[arg[i]], infile)
+	end
+end
+-- Done.
 buildObj(arg[1], arg[1], "main")
 if #arg >= 3 then
 	for i=3, #arg, 1 do

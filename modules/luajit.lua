@@ -4,17 +4,18 @@ function buildObj_luajit(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
 	name = name or (dir:gsub("^%./",""):gsub("^/",""):gsub("/",".") .. filename:gsub("%.lua$",""))
 	if not nocheckfile and infile then
-		local file = assert(io.open(infile))
-		local content = file:read("*all")
-		file:close()
-		local func,err = loadstring(content)
+		local func,err = loadstring(luacode[infile])
 		if func then
-			run(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
+			local f = io.popen(string.format("%s -b -n "..name.." %s %s", ljbin, "-", outfile),"w")
+			f:write(luacode[infile])
+			f:close()
 		else
 			fatal(err)
 		end
 	else
-		run(string.format("%s -b -n "..name.." %s %s", ljbin, infile, outfile))
+		local f = io.popen(string.format("%s -b -n "..name.." %s %s", ljbin, "-", outfile),"w")
+		f:write(luacode[infile])
+		f:close()
 	end
 	return outfile
 end
@@ -24,12 +25,12 @@ function compile_luajit(fargs)
 		-x c %s -x none %s \
 		%s \
 		-o %s -lm -ldl -flto ]], (os.getenv("CC") or "gcc"), optimisationlevel, "-" ,(arg[1]..".o"), fargs.." ".. table.concat(extra_objects," "), arg[2]), "w")
-	b:write(code)
+	b:write(ccode)
 	b:close()
 	os.execute("rm -rf "..arg[1]..".o")
 end
 addOption("j",function()
-	code = [[
+	ccode = [[
 #include <stdio.h>
 #include "lua.h"
 #include "lualib.h"

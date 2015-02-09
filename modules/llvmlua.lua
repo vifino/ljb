@@ -9,17 +9,18 @@ function buildObj_llvmlua(infile, outfile, name)
 	local dir, filename, extension = string.match(infile, "(.-)([^/]-([^%.]+))$")
 	name = name or (dir:gsub("^%./",""):gsub("^/",""):gsub("/",".") .. filename:gsub("%.lua$",""))
 	if not nocheckfile and infile then
-		local file = assert(io.open(infile))
-		local content = file:read("*all")
-		file:close()
-		local func,err = loadstring(content)
+		local func,err = loadstring(luacode[infile])
 		if func then
-			run(string.format("%s -O3 -s -bc %s -o %s", llvm_luac, infile, outfile))
+			local f = io.popen(string.format("%s -O3 -s -bc %s -o %s", llvm_luac, "-", outfile),"w")
+			f:write(luacode[infile])
+			f:close()
 		else
 			fatal(err)
 		end
 	else
-		run(string.format("%s -O3 -s -bc %s -o %s", llvm_luac, infile, outfile))
+		local f = io.popen(string.format("%s -O3 -s -bc %s -o %s", llvm_luac, "-", outfile),"w")
+		f:write(luacode[infile])
+		f:close()
 	end
 	return outfile
 end

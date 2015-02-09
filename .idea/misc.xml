@@ -21,6 +21,7 @@
     </annotationProcessing>
   </component>
   <component name="CopyrightManager" default="" />
+  <component name="CppTools.Loader" reportImplicitCastToBool="false" reportNameReferencedOnce="false" version="3" compilerSelect="AUTO" />
   <component name="DaemonCodeAnalyzer">
     <disable_hints />
   </component>

@@ -2,5 +2,4 @@ all: ljb
 clean:
 	rm ljb
 ljb:
-	lua build.lua
-
+	luajit bin/ljb.lua -sNmc bin/ljb.lua ljb modules/*.lua

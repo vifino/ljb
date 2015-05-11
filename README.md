@@ -27,3 +27,6 @@ Dependencies:
 
 # Running:
 Running a compiled script requires no install of gcc, clang, LuaJIT, LJX or LLVM-Lua, if the script does not need it.
+
+# License:
+MIT

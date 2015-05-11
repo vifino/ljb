@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="13a6f01e-64c8-4d12-ac9d-3834aac7a582" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/bin/ljb.lua" afterPath="$PROJECT_DIR$/bin/ljb.lua" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/modules/macros.lua" afterPath="$PROJECT_DIR$/modules/macros.lua" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-    </list>
+    <list default="true" id="13a6f01e-64c8-4d12-ac9d-3834aac7a582" name="Default" comment="" />
     <ignored path="ljb.iws" />
     <ignored path=".idea/workspace.xml" />
     <ignored path="$PROJECT_DIR$/out/" />
@@ -771,12 +767,12 @@
       <workItem from="1423500328195" duration="133000" />
       <workItem from="1423500505898" duration="1750000" />
       <workItem from="1423502651002" duration="328000" />
-      <workItem from="1423510776627" duration="1153000" />
+      <workItem from="1423510776627" duration="1752000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="25336000" />
+    <option name="totallyTimeSpent" value="25935000" />
   </component>
   <component name="TodoView" selected-index="0">
     <todo-panel id="selected-file">

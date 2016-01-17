@@ -204,7 +204,7 @@ addOption("s", function() -- Strip
 		optimisationlevel = "s"
 		winfo("Stripping... ")
 		local status = os.execute("strip --strip-all "..arg[2])
-		if status/256 == 0 then
+		if (type(status) == "number" and status/256 == 0) or (type(status) == "boolean" and status == true) then
 			print("Done.")
 		else
 			print("Error!")
@@ -217,7 +217,7 @@ addOption("c", function() -- UPX
 		winfo("Compacting... ")
 		--io.popen("upx -9 "..arg[2],"r"):close()
 		local status = os.execute("upx -9 "..arg[2].." > /dev/null")
-		if status/256 == 0 then
+		if (type(status) == "number" and status/256 == 0) or (type(status) == "boolean" and status == true) then
 			print("Done.")
 		else
 			print("Error!")

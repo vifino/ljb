@@ -80,7 +80,7 @@ end
 -- Done.
 
 -- Some variables required later.
-nocheckfile = false
+local nocheckfile = false
 ccargs = ""
 extra_objects = {}
 extra_c = os.getenv("ljb_cadd") or ""
@@ -299,6 +299,9 @@ if ccargs == "" then
 	if not (os.getenv("luajit_obj") or os.getenv("luajit_lib")) then
 		ccargs = "-lluajit-5.1 " .. ccargs
 	end
+end
+if os.getenv("CFLAGS") then
+	ccargs = ccargs .. " " .. os.getenv("CFLAGS")
 end
 
 -- Actual compilation.
